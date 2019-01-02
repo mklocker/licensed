@@ -23,11 +23,11 @@ module Licensed
           Dir.chdir app.source_path do
             dependencies = app_dependencies(app)
             @config.ui.info "Checking licenses for #{app['name']}: #{dependencies.size} dependencies"
+            detected_licences = []
 
             results = dependencies.map do |dependency|
               name = dependency.name
               filename = app.cache_path.join(dependency["type"], "#{name}.txt")
-
               warnings = []
 
               # verify cached license data for dependency
@@ -40,6 +40,11 @@ module Licensed
                 warnings << "missing license text" if license.license_text.empty?
                 unless allowed_or_reviewed?(app, license)
                   warnings << "license needs reviewed: #{license["license"]}."
+                end
+
+                if warnings.empty?
+                  l = license # Sample output per dependency: licensed 1.5.2	mit	https://github.com/github/licensed
+                  detected_licences << "#{l["name"]} #{l["version"]}\t#{l["license"]}\t#{l["homepage"]}"
                 end
               else
                 warnings << "cached license data missing"
@@ -63,6 +68,11 @@ module Licensed
                   @config.ui.error "  - #{warning}"
                 end
               end
+            end
+
+            @config.ui.warn "\n\nList of Installed / Analyzed Depedencies:"
+            detected_licences.each do |output_line|
+              puts output_line
             end
 
             puts "\n#{dependencies.size} dependencies checked, #{results.size} warnings found."
